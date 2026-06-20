@@ -1378,25 +1378,16 @@
             z-index: 2;
         }
 
-        #highlight-palette .yellow {
-            background: #fde047;
+        \1 #ffe36f;
         }
 
-        .hp-color.green {
-            background: #4ade80;
+        \1 #8adf8a;
         }
 
-        .hp-color.blue {
-            background: #60a5fa;
+        \1 #7cb5ff;
         }
 
-        #highlight-palette .hp-remove {
-            margin-left: 6px;
-            padding-left: 10px;
-            border-left: 1px solid var(--border);
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--danger);
+        \1color: var(--muted);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1409,24 +1400,15 @@
         }
 
         .hl-yellow {
-            background-color: rgba(253, 224, 71, 0.55);
-            border-radius: 3px;
-            padding: 2px 0;
-            color: inherit;
+            background-color: #fff6a7;\1color: #1f2937;
         }
 
         .hl-green {
-            background-color: rgba(74, 222, 128, 0.55);
-            border-radius: 3px;
-            padding: 2px 0;
-            color: inherit;
+            background-color: #c8f7c5;\1color: #1f2937;
         }
 
         .hl-blue {
-            background-color: rgba(96, 165, 250, 0.55);
-            border-radius: 3px;
-            padding: 2px 0;
-            color: inherit;
+            background-color: #cfe9ff;\1color: #1f2937;
         }
 
         html.dark .hl-yellow {
@@ -3448,7 +3430,7 @@
         <div class="hp-color yellow" data-color="hl-yellow"></div>
         <div class="hp-color green" data-color="hl-green"></div>
         <div class="hp-color blue" data-color="hl-blue"></div>
-        <span class="hp-remove" id="hp-clear">✖ Clear</span>
+        <span class="hp-remove" id="hp-clear">Clear</span>
     </div>
 
     <div class="ma-lock-overlay ma-hide" id="ma-lock-overlay">
@@ -5492,9 +5474,56 @@
         });
 
         // --- Pro Highlighter Module ---
-        window.maApplyHighlight = function (colorClass) { if (!currentHlRange || !activeHlContainer) return; const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(currentHlRange); activeHlContainer.setAttribute('contenteditable', 'true'); activeHlContainer.focus(); const magicHex = "#ff00fe"; document.execCommand("styleWithCSS", false, true); document.execCommand("hiliteColor", false, magicHex); if (!document.queryCommandSupported("hiliteColor")) document.execCommand("backColor", false, magicHex); activeHlContainer.removeAttribute('contenteditable'); activeHlContainer.querySelectorAll(`[style*="${magicHex}"], [style*="rgb(255, 0, 254)"]`).forEach(span => { span.removeAttribute('style'); span.className = colorClass; }); sel.removeAllRanges(); document.getElementById('highlight-palette').style.display = 'none'; maSaveHighlights(); }
+        // Wrap exactly the selected range in <span class="hl-..."> nodes via a
+        // deterministic DOM walk. No execCommand / contenteditable, so a highlight can
+        // never bleed past the selection into following paragraphs or the references.
+        function maWrapRange(range, colorClass, container) {
+            if (!range || range.collapsed) return;
+            const nodes = [];
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+                acceptNode(n) { return range.intersectsNode(n) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }
+            });
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(node => {
+                const startOff = (node === range.startContainer) ? range.startOffset : 0;
+                const endOff = (node === range.endContainer) ? range.endOffset : node.nodeValue.length;
+                if (startOff >= endOff) return;                       // empty slice at a range boundary
+                let mid = node;
+                if (startOff > 0) mid = mid.splitText(startOff);
+                if (endOff - startOff < mid.nodeValue.length) mid.splitText(endOff - startOff);
+                if (/^\s*$/.test(mid.nodeValue)) return;             // skip blank inter-block text
+                const parent = mid.parentNode;
+                if (parent && parent.classList && parent.classList.contains(colorClass) && parent.childNodes.length === 1) return;
+                const span = document.createElement('span');
+                span.className = colorClass;
+                parent.insertBefore(span, mid);
+                span.appendChild(mid);
+            });
+        }
 
-        window.maClearHighlights = function () { if (!currentHlRange || !activeHlContainer) return; const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(currentHlRange); activeHlContainer.setAttribute('contenteditable', 'true'); activeHlContainer.focus(); document.execCommand("styleWithCSS", false, true); document.execCommand("hiliteColor", false, "transparent"); if (!document.queryCommandSupported("hiliteColor")) document.execCommand("backColor", false, "transparent"); activeHlContainer.removeAttribute('contenteditable'); activeHlContainer.querySelectorAll('span[class^="hl-"]').forEach(span => { if (sel.containsNode(span, true) || currentHlRange.intersectsNode(span)) { const parent = span.parentNode; while (span.firstChild) parent.insertBefore(span.firstChild, span); parent.removeChild(span); } }); activeHlContainer.querySelectorAll('span').forEach(span => { if (span.style.backgroundColor === "transparent" || span.style.backgroundColor === "rgba(0, 0, 0, 0)") { const p = span.parentNode; while (span.firstChild) p.insertBefore(span.firstChild, span); p.removeChild(span); } }); sel.removeAllRanges(); document.getElementById('highlight-palette').style.display = 'none'; maSaveHighlights(); }
+        window.maApplyHighlight = function (colorClass) {
+            if (!currentHlRange || !activeHlContainer) return;
+            maWrapRange(currentHlRange, colorClass, activeHlContainer);
+            activeHlContainer.normalize();
+            window.getSelection().removeAllRanges();
+            document.getElementById('highlight-palette').style.display = 'none';
+            maSaveHighlights();
+        }
+
+        window.maClearHighlights = function () {
+            if (!currentHlRange || !activeHlContainer) return;
+            activeHlContainer.querySelectorAll('span[class*="hl-"]').forEach(span => {
+                if (currentHlRange.intersectsNode(span)) {
+                    const parent = span.parentNode;
+                    while (span.firstChild) parent.insertBefore(span.firstChild, span);
+                    parent.removeChild(span);
+                }
+            });
+            activeHlContainer.normalize();
+            window.getSelection().removeAllRanges();
+            document.getElementById('highlight-palette').style.display = 'none';
+            maSaveHighlights();
+        }
 
         function maSaveHighlights() { if (!currentQuestionStorageKey) return; const stem = document.querySelector('.question-stem'); const comm = document.querySelector('.commentary-content'); if (stem) localStorage.setItem(currentQuestionStorageKey + '_stem', stem.innerHTML); if (comm) localStorage.setItem(currentQuestionStorageKey + '_comm', comm.innerHTML); document.querySelectorAll('.answer-option').forEach(opt => { const id = opt.getAttribute('data-option-id'); const txt = opt.querySelector('.option-text'); if (id && txt) localStorage.setItem(currentQuestionStorageKey + '_opt_' + id, txt.innerHTML); }); }
 
