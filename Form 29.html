@@ -86,7 +86,7 @@
             --radius: 18px;
             --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
             --font-display: 'Playfair Display', Georgia, serif;
-            --text-scale: 1;
+            --text-scale: 1.1;
             --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
         }
 
@@ -3964,7 +3964,7 @@
                 document.documentElement.classList.add('dark');
                 document.getElementById('dark-toggle').textContent = '☀️';
             }
-            let fontScale = parseFloat(localStorage.getItem('ma_font_scale')) || 1;
+            let fontScale = parseFloat(localStorage.getItem('ma_font_scale')) || 1.1;
             document.documentElement.style.setProperty('--text-scale', fontScale);
 
             loadDashboardActivity();
@@ -3979,8 +3979,8 @@
             }
         });
 
-        document.getElementById('btn-font-inc').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1; if (f < 1.5) { f += 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
-        document.getElementById('btn-font-dec').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1; if (f > 0.8) { f -= 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
+        document.getElementById('btn-font-inc').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.1; if (f < 1.5) { f += 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
+        document.getElementById('btn-font-dec').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.1; if (f > 0.8) { f -= 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
 
         const btnZen = document.getElementById('btn-zen');
         if (btnZen) { btnZen.addEventListener('click', () => { document.body.classList.add('zen-mode'); }); }
