@@ -4482,7 +4482,7 @@
             currentMode = 'learning';
             document.getElementById('learning-setup').style.display = 'none';
             document.getElementById('learning-questions').style.display = 'block';
-            displayQuestion();
+            displayLearningQuestion();
         }
 
         async function renderLearningTree(items, container, level = 0) {
@@ -4721,6 +4721,11 @@
             const __container = document.getElementById('learning-questions');
             __container.classList.add('nbme-skin');
             __container.classList.add('uw-skin');
+            // Carry the app dark theme (html.dark) into the question view on first entry to a set,
+            // so dark mode doesn't reset. Only on first entry — preserves a manual Reverse Color toggle mid-set.
+            if (!document.body.classList.contains('in-nbme-question')) {
+                __container.classList.toggle('nbme-reverse', document.documentElement.classList.contains('dark'));
+            }
             document.body.classList.add('in-nbme-question');
             __container.innerHTML = html;
 
@@ -4788,7 +4793,7 @@
             if (index < 0 || index >= currentQuestions.length) return;
             if (index === currentQuestionIndex) return;
             currentQuestionIndex = index;
-            displayQuestion();
+            (currentMode === 'exam' ? displayExamQuestion() : displayLearningQuestion());
         }
         function uwToggleMark(ev, flagKey) {
             ev.stopPropagation();
@@ -5386,7 +5391,7 @@
                 document.getElementById('exam-questions').style.display = 'block';
 
                 startExamTimer();
-                await displayQuestion();
+                await displayExamQuestion();
             } catch(e) {
                 console.error(e);
             } finally {
@@ -5584,7 +5589,11 @@
             const __ec = document.getElementById('exam-questions');
             __ec.classList.add('nbme-skin', 'uw-skin');
             const __lc = document.getElementById('learning-questions');
-            if (__lc) __lc.classList.remove('nbme-skin', 'uw-skin');
+            if (__lc) __lc.classList.remove('nbme-skin', 'uw-skin', 'nbme-reverse');
+            // Carry the app dark theme (html.dark) into the question view on first entry to a set.
+            if (!document.body.classList.contains('in-nbme-question')) {
+                __ec.classList.toggle('nbme-reverse', document.documentElement.classList.contains('dark'));
+            }
             document.body.classList.add('in-nbme-question');
             __ec.innerHTML = html;
             if (typeof uwRenderSidebar === 'function') uwRenderSidebar();
